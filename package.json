@@ -1,0 +1,26 @@
+{
+  "name": "ingredient_insight_backend",
+  "version": "1.0.0",
+  "description": "Backend for Ingredient Insight App.",
+  "keywords": [
+    "Ingredient",
+    "Insight",
+    "Packet"
+  ],
+  "license": "ISC",
+  "author": "Nilesh N Sadhu",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.7",
+    "env": "^0.0.2",
+    "express": "^4.21.2",
+    "nodemon": "^3.1.9",
+    "pg": "^8.13.1"
+  }
+}
