@@ -32,9 +32,9 @@ function randomOTP() {
 }
 
 function generateToken(user) {
-    const playload = { "id": user.id, "email": user.email };
+    const payload = { "id": user.id, "email": user.email };
     const SECRET_KEY = process.env.SECRET_KEY;
-    const token = jwt.sign(playload, SECRET_KEY, { expiresIn: '1h' });
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1h' });
     return token;
 }
 
@@ -47,8 +47,7 @@ app.post('/login', async (req, res) => {
             const checkPassword = await bcrypt.compare(password, userData);
             if (checkPassword) {
                 const token = generateToken(userData);
-                res.send(token);
-                res.status(200).json({message: 'Welcome to Ingredient Insight.', token});
+                res.status(200).json({ token });
             } else {
                 res.status(401).send("Sorry, password didn't match.");
             }
@@ -65,9 +64,14 @@ app.post('/register', async (req, res) => {
     const { user, email, password } = req.body;
     try {
         const hashPassword = await bcrypt.hash(password, 10);
-        await db.query("INSERT INTO userdata(name, email, password) VALUES ($1, $2, $3)",
+        const result = await db.query("INSERT INTO userdata(name, email, password) VALUES ($1, $2, $3) RETURNING id",
             [user, email, hashPassword]);
-        console.log("Data inserted into PostgreSql.");
+        if (result.rows.length > 0) {
+            const newUser = result.rows[0];
+            console.log("Data inserted into PostgreSql.");
+            const token = generateToken({ id: newUser.id, email })
+            res.status(200).json({ token });
+        }
     } catch (error) {
         res.status(500).send("Error while login.");
         console.log("Error: ", error);
@@ -82,7 +86,7 @@ var transporter = nodemailer.createTransport({
     }
 });
 
-app.post('/forgot-password', async (req, res) => {
+app.post('/verifyEmail', async (req, res) => {
     const { email } = req.body;
     try {
         const verify = await db.query("SELECT email FROM userdata WHERE email = $1", [email]);
@@ -115,14 +119,16 @@ app.post('/forgot-password', async (req, res) => {
 });
 
 app.post('/verify-otp', (req, res) => {
-    const { email, otp } = req.body;
-
-    // Debugging Step
-    // console.log(`Verifying OTP for email: ${email} with provided OTP: ${otp}`);
-    // console.log(`Stored OTP for email ${email}: ${otps[email]}`);
-
+    const { otp } = req.body;
+    let email;
+    for (const key in otps) {
+        if (otps[key] === String(otp)) {
+            email = key;
+            break;
+        }
+    }
     try {
-        if (otps[email] === String(otp)) {
+        if (email) {
             res.status(200).send("Verification Done. (OTP Matched)");
         } else {
             res.status(400).send("Invalid OTP.");
@@ -132,6 +138,7 @@ app.post('/verify-otp', (req, res) => {
         res.status(500).send("Error verifying OTP.");
     }
 });
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
